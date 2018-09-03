@@ -3,20 +3,24 @@ const _ = require('koa-route');
 const ser = require('koa-static');
 const path = require('path');
 const app = new Koa();
-const DAO = require('./modules/DAO');
+const DAO = require('./modules/dao');
 
 const main = ser(path.join(__dirname, 'static'));
 
-const handler = async (e, ctx) => {
+const handler = async (ctx, next) => {
   const {
     response,
     request,
   } = ctx;
-  response.status = e.statusCode || e.status || 500;
-  response.body = {
-    message: e.message
-  };
-  console.error(`[error][${Date.now()}] ${request.method} ${request.url} [reason] ${e.message} `);
+  try {
+    await next();
+  } catch (e) {
+    response.status = e.statusCode || e.status || 500;
+    response.body = {
+      message: e.message
+    };
+    console.error(`[error][${Date.now()}] ${request.method} ${request.url} [reason] ${e.message} `);
+  }
 };
 const logger = async (ctx, next) => {
   const {
@@ -76,7 +80,7 @@ const add = async (ctx) => {
   }
 };
 
-// app.use(handler);
+app.use(handler);
 app.use(main);
 app.use(logger);
 app.use(_.get('/', root));
@@ -85,7 +89,6 @@ app.use(_.get('/error', error));
 app.use(_.get('/getData', getData));
 app.use(_.get('/add', add));
 
-app.on('error', handler);
 
 app.listen(3000);
 console.log('server listen 3000...');
